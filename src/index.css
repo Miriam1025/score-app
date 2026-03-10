@@ -1,0 +1,91 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Dyslexic-friendly base styles */
+@layer base {
+  html {
+    @apply bg-background text-text-primary;
+    letter-spacing: 0.05em;
+    word-spacing: 0.1em;
+  }
+
+  body {
+    @apply leading-dyslexic antialiased;
+    text-align: left; /* Never justify text */
+  }
+
+  /* No italics - use bold instead */
+  em, i {
+    font-style: normal;
+    @apply font-bold;
+  }
+}
+
+@layer components {
+  /* Action words styling - ALL CAPS bold */
+  .action-word {
+    @apply font-bold uppercase;
+  }
+
+  /* Time/duration styling */
+  .time-display {
+    @apply text-time-accent font-medium;
+  }
+
+  /* Card styles */
+  .stage-card {
+    @apply bg-card rounded-lg border border-border shadow-sm p-4 mb-4;
+  }
+
+  .stage-card-collapsed {
+    @apply bg-card rounded-lg border border-border shadow-sm p-3 mb-2 cursor-pointer;
+    @apply hover:border-action-primary transition-colors;
+  }
+
+  /* Button styles */
+  .btn-primary {
+    @apply bg-action-primary text-white px-4 py-2 rounded-lg font-medium;
+    @apply hover:bg-blue-700 active:scale-95 transition-all;
+    @apply min-h-[44px] min-w-[44px]; /* Touch-friendly */
+  }
+
+  .btn-secondary {
+    @apply bg-border text-text-primary px-4 py-2 rounded-lg font-medium;
+    @apply hover:bg-gray-300 active:scale-95 transition-all;
+    @apply min-h-[44px] min-w-[44px];
+  }
+
+  /* Measurement input buttons */
+  .btn-adjust {
+    @apply w-11 h-11 rounded-lg bg-border text-text-primary font-bold text-xl;
+    @apply hover:bg-gray-300 active:scale-95 transition-all;
+    @apply flex items-center justify-center;
+  }
+
+  /* Toggle switch */
+  .toggle-track {
+    @apply w-12 h-7 bg-border rounded-full relative cursor-pointer transition-colors;
+  }
+
+  .toggle-track.active {
+    @apply bg-action-primary;
+  }
+
+  .toggle-thumb {
+    @apply w-5 h-5 bg-white rounded-full absolute top-1 left-1 transition-transform shadow;
+  }
+
+  .toggle-track.active .toggle-thumb {
+    @apply translate-x-5;
+  }
+}
+
+/* Respect reduced motion preference */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}

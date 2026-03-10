@@ -1,0 +1,8 @@
+# https://firebase.google.com/docs/functions/manage-functions
+firebase_functions>=0.1.0
+firebase_admin>=6.0.0
+Pillow>=10.0.0
+requests>=2.31.0
+google-cloud-vision>=3.5.0
+google-cloud-firestore>=2.14.0
+google-cloud-storage>=2.14.0

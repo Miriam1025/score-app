@@ -1,0 +1,1108 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>Score — Sourdough Tracker</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Atkinson+Hyperlegible:ital,wght@0,400;0,700;1,400&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg: #f5f0e8;
+      --card: #ffffff;
+      --crust: #2a1f15;
+      --cream: #f5efe6;
+      --text: #333333;
+      --text-secondary: #666666;
+      --text-muted: #8b7355;
+      --time: #B8860B;
+      --action: #2a1f15;
+      --success: #5a7a3a;
+      --border: #e5e0d8;
+      --border-light: #ede8df;
+      --input-bg: #faf8f5;
+      --radius: 14px;
+      --radius-sm: 8px;
+      --shadow: 0 2px 12px rgba(42, 31, 21, 0.07);
+      --shadow-lg: 0 8px 30px rgba(42, 31, 21, 0.1);
+      --font: 'Atkinson Hyperlegible', system-ui, -apple-system, sans-serif;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    html { font-size: 16px; -webkit-text-size-adjust: 100%; }
+
+    body {
+      font-family: var(--font);
+      background: var(--bg);
+      color: var(--text);
+      line-height: 1.6;
+      letter-spacing: 0.02em;
+      word-spacing: 0.05em;
+      min-height: 100vh;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    body::before {
+      content: '';
+      position: fixed;
+      inset: 0;
+      pointer-events: none;
+      opacity: 0.03;
+      background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+      background-size: 200px 200px;
+      z-index: 9999;
+    }
+
+    button { font-family: var(--font); cursor: pointer; border: none; background: none; font-size: inherit; color: inherit; letter-spacing: inherit; word-spacing: inherit; }
+    button:active { transform: scale(0.97); }
+    input, textarea { font-family: var(--font); letter-spacing: inherit; }
+
+    .app { max-width: 500px; margin: 0 auto; padding: 0 16px 100px; }
+
+    /* Header */
+    .header { position: sticky; top: 0; background: var(--bg); z-index: 50; padding: 14px 0 10px; border-bottom: 1px solid var(--border-light); margin-bottom: 16px; }
+    .header-top { display: flex; align-items: center; justify-content: space-between; }
+    .logo-group { display: flex; align-items: center; gap: 10px; }
+    .logo-text { font-size: 20px; font-weight: 700; letter-spacing: 0.15em; color: var(--crust); }
+    .settings-btn { padding: 6px; border-radius: 8px; color: var(--text-muted); }
+    .header-meta { font-size: 13px; color: var(--text-secondary); margin-top: 6px; }
+    .time-val { color: var(--time); font-weight: 700; }
+    .auth-status { font-size: 11px; color: var(--text-muted); margin-top: 2px; }
+    .sync-indicator { display: inline-block; width: 8px; height: 8px; border-radius: 50%; margin-right: 4px; vertical-align: middle; }
+    .sync-indicator.online { background: var(--success); }
+    .sync-indicator.offline { background: #cc6b3a; }
+
+    /* Progress */
+    .progress-bar { display: flex; gap: 6px; }
+    .progress-step { flex: 1; height: 6px; border-radius: 3px; background: var(--border); transition: background 0.3s; }
+    .progress-step.complete { background: var(--success); }
+    .progress-step.current { background: var(--time); }
+
+    /* Cards */
+    .stage-card { background: var(--card); border-radius: var(--radius); box-shadow: var(--shadow); margin-bottom: 14px; overflow: hidden; transition: box-shadow 0.2s; }
+    .stage-card.expanded { box-shadow: var(--shadow-lg); }
+    .stage-card-header { display: flex; align-items: center; justify-content: space-between; padding: 16px 18px; cursor: pointer; user-select: none; }
+    .stage-card-header:active { background: var(--cream); }
+    .stage-name { font-size: 15px; font-weight: 700; color: var(--crust); display: flex; align-items: center; gap: 8px; }
+    .stage-check { color: var(--success); font-size: 18px; }
+    .stage-duration { font-size: 14px; font-weight: 700; color: var(--time); }
+
+    .card-body { padding: 0 18px 20px; }
+    .intro-text { font-size: 15px; color: var(--text-secondary); margin-bottom: 14px; }
+
+    /* Measurements */
+    .measurement-row { display: flex; align-items: center; justify-content: space-between; padding: 10px 0; border-bottom: 1px solid var(--border-light); }
+    .measurement-label { font-size: 15px; font-weight: 700; }
+    .measurement-note { font-size: 12px; color: var(--text-muted); font-weight: 400; }
+    .measurement-control { display: flex; align-items: center; gap: 2px; }
+    .adj-btn { width: 38px; height: 38px; border-radius: var(--radius-sm); background: var(--cream); color: var(--crust); font-size: 18px; font-weight: 700; display: flex; align-items: center; justify-content: center; }
+    .adj-btn:active { background: var(--border); }
+    .measurement-value { width: 58px; text-align: center; font-size: 16px; font-weight: 700; color: var(--crust); background: var(--input-bg); border: 1px solid var(--border); border-radius: var(--radius-sm); padding: 6px 0; }
+    .measurement-unit { font-size: 13px; color: var(--text-muted); margin-left: 4px; width: 14px; }
+
+    /* Water temp */
+    .water-temp { display: flex; align-items: center; gap: 12px; padding: 12px 0; border-bottom: 1px solid var(--border-light); }
+    .water-temp-label { font-size: 14px; color: var(--text-secondary); }
+    .temp-options { display: flex; gap: 8px; }
+    .temp-btn { padding: 6px 14px; border-radius: 20px; font-size: 13px; font-weight: 700; border: 1.5px solid var(--border); color: var(--text-secondary); background: var(--card); transition: all 0.15s; }
+    .temp-btn.active { background: var(--crust); color: var(--cream); border-color: var(--crust); }
+
+    /* Instructions */
+    .instructions { padding: 14px 0; }
+    .instruction-line { font-size: 15px; line-height: 1.7; padding: 2px 0; }
+    .action-word { font-weight: 700; text-transform: uppercase; color: var(--crust); }
+    .time-ref { font-weight: 700; color: var(--time); }
+
+    .substage { margin-top: 14px; padding-top: 14px; border-top: 1px solid var(--border-light); }
+    .substage-title { font-size: 14px; font-weight: 700; color: var(--crust); margin-bottom: 8px; }
+
+    .target-box { background: var(--cream); border-radius: var(--radius-sm); padding: 10px 14px; margin-top: 12px; font-size: 14px; color: var(--crust); font-weight: 700; text-align: center; }
+    .notes-text { font-size: 13px; color: var(--text-muted); margin-top: 10px; font-style: normal; }
+
+    /* Photo section */
+    .photo-section { margin-top: 16px; padding-top: 16px; border-top: 1px solid var(--border-light); }
+    .photo-label { font-size: 13px; font-weight: 700; color: var(--text-secondary); margin-bottom: 10px; letter-spacing: 0.03em; }
+    .photo-buttons { display: flex; gap: 8px; }
+    .photo-btn { flex: 1; padding: 12px; border-radius: var(--radius-sm); background: var(--cream); color: var(--crust); font-size: 13px; font-weight: 700; display: flex; align-items: center; justify-content: center; gap: 6px; border: 1.5px dashed var(--border); }
+    .photo-btn:active { background: var(--border-light); }
+    .photo-preview { margin-top: 10px; }
+    .photo-thumb { width: 100%; max-height: 200px; object-fit: cover; border-radius: var(--radius-sm); border: 1px solid var(--border); }
+    .photo-meta { font-size: 11px; color: var(--text-muted); margin-top: 4px; }
+    .photo-uploading { font-size: 12px; color: var(--time); font-weight: 700; margin-top: 6px; }
+
+    /* Timer toggle */
+    .timer-section { margin-top: 14px; padding-top: 14px; border-top: 1px solid var(--border-light); display: flex; align-items: center; justify-content: space-between; }
+    .timer-label { font-size: 14px; color: var(--text-secondary); }
+    .toggle-track { width: 48px; height: 28px; border-radius: 14px; background: var(--border); position: relative; cursor: pointer; transition: background 0.2s; }
+    .toggle-track.on { background: var(--success); }
+    .toggle-knob { width: 22px; height: 22px; border-radius: 50%; background: white; position: absolute; top: 3px; left: 3px; transition: transform 0.2s; box-shadow: 0 1px 3px rgba(0,0,0,0.15); }
+    .toggle-track.on .toggle-knob { transform: translateX(20px); }
+
+    /* Notes */
+    .notes-section { margin-top: 14px; padding-top: 14px; border-top: 1px solid var(--border-light); }
+    .notes-input { width: 100%; border: 1px solid var(--border); border-radius: var(--radius-sm); padding: 10px 12px; font-size: 14px; resize: vertical; min-height: 60px; background: var(--input-bg); color: var(--text); }
+    .notes-input::placeholder { color: var(--text-muted); }
+
+    /* Complete button */
+    .complete-section { margin-top: 20px; padding-top: 16px; border-top: 1px solid var(--border-light); }
+    .complete-btn { width: 100%; padding: 16px; border-radius: var(--radius); background: var(--crust); color: var(--cream); font-size: 15px; font-weight: 700; letter-spacing: 0.06em; display: flex; align-items: center; justify-content: center; gap: 8px; }
+    .complete-btn:active { opacity: 0.9; }
+    .complete-btn.saving { opacity: 0.6; pointer-events: none; }
+
+    /* Outcome section (Stage 5) */
+    .outcome-section { margin-top: 14px; }
+    .outcome-title { font-size: 16px; font-weight: 700; color: var(--crust); margin-bottom: 14px; text-align: center; }
+    .outcome-group { margin-bottom: 16px; }
+    .outcome-label { font-size: 13px; font-weight: 700; color: var(--text-secondary); margin-bottom: 8px; letter-spacing: 0.03em; }
+    .option-pills { display: flex; gap: 6px; flex-wrap: wrap; }
+    .pill { padding: 8px 14px; border-radius: 20px; font-size: 13px; font-weight: 700; border: 1.5px solid var(--border); color: var(--text-secondary); background: var(--card); }
+    .pill.selected { background: var(--crust); color: var(--cream); border-color: var(--crust); }
+    .star-row { display: flex; gap: 6px; }
+    .star { font-size: 28px; cursor: pointer; color: var(--border); transition: color 0.1s; }
+    .star.filled { color: var(--time); }
+    .flavor-input { width: 100%; border: 1px solid var(--border); border-radius: var(--radius-sm); padding: 10px 12px; font-size: 14px; resize: vertical; min-height: 60px; background: var(--input-bg); color: var(--text); }
+
+    /* Empty state */
+    .empty-state { text-align: center; padding: 80px 20px; }
+    .empty-text { font-size: 16px; color: var(--text-muted); margin-bottom: 24px; margin-top: 16px; }
+    .start-btn { display: inline-flex; align-items: center; gap: 8px; padding: 16px 36px; border-radius: var(--radius); background: var(--crust); color: var(--cream); font-size: 16px; font-weight: 700; letter-spacing: 0.06em; }
+
+    /* Bake complete */
+    .bake-complete { text-align: center; padding: 40px 20px; }
+    .bake-complete h2 { font-size: 22px; color: var(--crust); margin-bottom: 8px; }
+    .bake-complete p { font-size: 15px; color: var(--text-secondary); margin-bottom: 20px; }
+    .new-bake-btn { display: inline-flex; align-items: center; gap: 8px; padding: 14px 30px; border-radius: var(--radius); background: var(--crust); color: var(--cream); font-size: 15px; font-weight: 700; letter-spacing: 0.06em; }
+
+    /* History view */
+    .history-card { background: var(--card); border-radius: var(--radius); box-shadow: var(--shadow); padding: 16px 18px; margin-bottom: 10px; cursor: pointer; }
+    .history-card:active { background: var(--cream); }
+    .history-date { font-size: 14px; font-weight: 700; color: var(--crust); }
+    .history-meta { font-size: 13px; color: var(--text-muted); margin-top: 4px; }
+    .history-rating { color: var(--time); }
+    .history-status { display: inline-block; font-size: 11px; font-weight: 700; padding: 2px 8px; border-radius: 10px; margin-left: 8px; }
+    .history-status.active { background: #fef3c7; color: #92400e; }
+    .history-status.completed { background: #dcfce7; color: #166534; }
+
+    /* Loading */
+    .loading-state { text-align: center; padding: 60px 20px; color: var(--text-muted); }
+    .spinner { display: inline-block; width: 24px; height: 24px; border: 3px solid var(--border); border-top-color: var(--crust); border-radius: 50%; animation: spin 0.8s linear infinite; margin-bottom: 12px; }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    /* Bottom nav */
+    .bottom-nav { position: fixed; bottom: 0; left: 0; right: 0; background: var(--card); border-top: 1px solid var(--border); display: flex; z-index: 100; }
+    .nav-item { flex: 1; display: flex; flex-direction: column; align-items: center; padding: 10px 0 12px; font-size: 11px; font-weight: 700; color: var(--text-muted); letter-spacing: 0.05em; gap: 4px; transition: color 0.15s; }
+    .nav-item.active { color: var(--crust); }
+
+    /* Animations */
+    @keyframes slideDown { from { opacity: 0; max-height: 0; } to { opacity: 1; max-height: 3000px; } }
+    .card-expanded-content { animation: slideDown 0.25s ease-out; overflow: hidden; }
+    @media (prefers-reduced-motion: reduce) { *, *::before, *::after { animation-duration: 0.01ms !important; transition-duration: 0.01ms !important; } }
+    @media (min-width: 600px) { .app { padding: 0 24px 100px; } }
+
+    /* Hidden file input */
+    .hidden-input { display: none; }
+  </style>
+</head>
+<body>
+<div id="root"></div>
+
+<!-- Firebase SDK (compat for single-file usage) -->
+<script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-storage-compat.js"></script>
+
+<script>
+  // Initialize Firebase
+  const firebaseConfig = {
+    apiKey: "AIzaSyDNFQGw2HrkHiZemXZYFP6bs2l0id-nWeg",
+    authDomain: "score-app-75963.firebaseapp.com",
+    projectId: "score-app-75963",
+    storageBucket: "score-app-75963.firebasestorage.app",
+    messagingSenderId: "955656698248",
+    appId: "1:955656698248:web:335d2961add45eea66623d",
+    measurementId: "G-7XPFV3G9V5"
+  };
+
+  firebase.initializeApp(firebaseConfig);
+  const auth = firebase.auth();
+  const db = firebase.firestore();
+  const storage = firebase.storage();
+
+  // Enable offline persistence
+  db.enablePersistence({ synchronizeTabs: true }).catch(err => {
+    console.log('Persistence error:', err.code);
+  });
+</script>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/umd/react.production.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.2.0/umd/react-dom.production.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/babel-standalone/7.23.9/babel.min.js"></script>
+
+<script type="text/babel">
+const { useState, useCallback, useEffect, useRef } = React;
+
+// ─── SVG Icons ───
+const LogoIcon = ({ size = 32 }) => (
+  <svg width={size} height={size} viewBox="0 0 120 120">
+    <path d="M 60 10 Q 95 12, 105 45 Q 112 75, 90 100 Q 60 115, 30 100 Q 8 80, 12 50 Q 15 20, 60 10" fill="#2a1f15"/>
+    <path d="M 60 10 Q 95 12, 105 45 Q 112 75, 90 100 Q 60 115, 30 100 Q 8 80, 12 50 Q 15 20, 60 10" fill="#f5efe6" opacity="0.12"/>
+    <g transform="translate(60 60) rotate(-30) translate(-60 -60)">
+      <path d="M 60 95 Q 60 60, 60 28" stroke="#f5efe6" strokeWidth="2" fill="none" strokeLinecap="round"/>
+      <ellipse cx="48" cy="80" rx="4" ry="10" fill="#f5efe6" transform="rotate(-35 48 80)"/>
+      <ellipse cx="50" cy="62" rx="3.5" ry="9" fill="#f5efe6" transform="rotate(-40 50 62)"/>
+      <ellipse cx="53" cy="45" rx="3" ry="8" fill="#f5efe6" transform="rotate(-45 53 45)"/>
+      <ellipse cx="72" cy="80" rx="4" ry="10" fill="#f5efe6" transform="rotate(35 72 80)"/>
+      <ellipse cx="70" cy="62" rx="3.5" ry="9" fill="#f5efe6" transform="rotate(40 70 62)"/>
+      <ellipse cx="67" cy="45" rx="3" ry="8" fill="#f5efe6" transform="rotate(45 67 45)"/>
+      <ellipse cx="60" cy="30" rx="2.5" ry="6" fill="#f5efe6"/>
+    </g>
+  </svg>
+);
+
+const ArrowSvg = () => (
+  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg>
+);
+
+const SettingsSvg = () => (
+  <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+);
+
+const CameraSvg = () => (
+  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>
+);
+
+const UploadSvg = () => (
+  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+);
+
+// ─── Recipe data ───
+const STAGES = [
+  {
+    id: 'stage1', number: 1, name: 'Starter Build', duration: 'Overnight',
+    intro: 'In a clean jar, ADD:',
+    measurements: [
+      { key: 'starter', label: 'Starter', unit: 'g', default: 50, step: 5, note: 'from fridge' },
+      { key: 'water', label: 'Water', unit: 'g', default: 50, step: 5 },
+      { key: 'flour', label: 'Flour', unit: 'g', default: 50, step: 5 },
+    ],
+    hasWaterTemp: true,
+    instructions: [
+      { text: ['STIR', ' water until no clumps'] },
+      { text: ['STIR', ' flour until no dry spots'] },
+      { text: ['COVER', ' top loosely'] },
+      { text: ['LEAVE', ' somewhere warm overnight'] },
+    ],
+    target: '2–3x rise by morning',
+    hasPhoto: true, photoLabel: 'Baseline Photo', hasTimer: false,
+  },
+  {
+    id: 'stage2', number: 2, name: 'Mix Dough', duration: '5–8+ hrs',
+    intro: 'In a bowl, ADD:',
+    measurements: [
+      { key: 'water', label: 'Water', unit: 'g', default: 350, step: 25 },
+      { key: 'starter', label: 'Starter', unit: 'g', default: 50, step: 5, note: 'at peak' },
+      { key: 'flour', label: 'Flour', unit: 'g', default: 500, step: 25 },
+      { key: 'salt', label: 'Salt', unit: 'g', default: 15, step: 1 },
+    ],
+    hasWaterTemp: true,
+    instructions: [
+      { text: ['ADD', ' water'] },
+      { text: ['ADD', ' starter, ', 'WHISK', ' until foamy & no clumps'] },
+      { text: ['ADD', ' flour, ', 'MIX', ' until no dry clumps'] },
+      { text: ['ADD', ' salt, ', 'MIX', ' again'] },
+      { text: ['COVER', ' & let rest ', '30 min', ''] },
+    ],
+    subSteps: {
+      title: 'Stretch & Fold',
+      steps: [
+        { text: ['COMPLETE', ' stretch & fold set'] },
+        { text: ['REPEAT', ' every ', '30 min', ''] },
+        { text: ['', 'Duration: ', '2–3 hours', ''] },
+      ],
+    },
+    bulkNote: { text: ['LEAVE', ' covered on counter until almost doubled — ', '2–5+ hours', ''] },
+    shaping: [
+      { text: ['SHAPE', ' the dough'] },
+      { text: ['PUT', ' in a banneton bowl'] },
+      { text: ['COVER', ' with plastic wrap'] },
+    ],
+    target: 'Dough approximately doubled',
+    hasPhoto: true, photoLabel: 'Baseline Photo', hasTimer: true, timerLabel: 'Stretch & fold reminders',
+  },
+  {
+    id: 'stage3', number: 3, name: 'Cold Proof', duration: '6–48 hrs',
+    intro: null, measurements: [], hasWaterTemp: false,
+    instructions: [{ text: ['PUT', ' in the fridge'] }],
+    notes: 'Longer cold proof = more sour flavor. Can bake anytime within this window.',
+    target: null, hasPhoto: true, photoLabel: 'Into Fridge Photo', hasTimer: true, timerLabel: 'Cold proof reminder',
+  },
+  {
+    id: 'stage4', number: 4, name: 'Bake', duration: '~2 hrs',
+    intro: null, measurements: [], hasWaterTemp: false,
+    subStages: [
+      { title: 'Preheat', instructions: [{ text: ['PREHEAT', ' Dutch oven to 450°F'] }], time: '1 hour' },
+      { title: 'Covered Bake', instructions: [{ text: ['PUT', ' dough on parchment paper'] }, { text: ['SCORE', ' the top'] }, { text: ['BAKE', ' at 450°F'] }], time: '35 min' },
+      { title: 'Uncovered Bake', instructions: [{ text: ['TAKE', ' the lid off'] }, { text: ['TURN', ' oven down to 400°F'] }, { text: ['BAKE', ' until golden'] }], time: '15 min' },
+    ],
+    target: null, hasPhoto: true, photoLabel: 'Before & After Bake', hasTimer: true, timerLabel: 'Bake timers',
+  },
+  {
+    id: 'stage5', number: 5, name: 'Rest & Score', duration: '~2 hrs',
+    intro: null, measurements: [], hasWaterTemp: false,
+    instructions: [{ text: ['WAIT', ' to cut (best practice)'] }],
+    notes: 'Cutting too early releases steam and affects texture. Internal baking continues during rest.',
+    target: null, hasPhoto: true, photoLabel: 'Crumb Photo', hasTimer: true, timerLabel: 'Rest timer',
+    hasOutcome: true,
+  },
+];
+
+// ─── Firebase Helper Hooks ───
+const useAuth = () => {
+  const [user, setUser] = useState(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const unsub = auth.onAuthStateChanged(u => {
+      if (u) {
+        setUser(u);
+        setLoading(false);
+      } else {
+        auth.signInAnonymously().then(cred => {
+          setUser(cred.user);
+          // Create user doc if new
+          db.collection('users').doc(cred.user.uid).set({
+            id: cred.user.uid,
+            createdAt: firebase.firestore.FieldValue.serverTimestamp(),
+            lastActiveAt: firebase.firestore.FieldValue.serverTimestamp(),
+            defaults: {
+              stage1: { starter: 50, water: 50, flour: 50 },
+              stage2: { water: 350, starter: 50, flour: 500, salt: 15 }
+            }
+          }, { merge: true });
+          setLoading(false);
+        }).catch(err => {
+          console.error('Auth error:', err);
+          setLoading(false);
+        });
+      }
+    });
+    return () => unsub();
+  }, []);
+
+  return { user, loading };
+};
+
+// ─── Firestore Operations ───
+const firestoreOps = {
+  async createBake(userId) {
+    const bakeRef = db.collection('users').doc(userId).collection('bakes').doc();
+    const bakeId = bakeRef.id;
+    const now = firebase.firestore.FieldValue.serverTimestamp();
+
+    await bakeRef.set({
+      id: bakeId,
+      status: 'active',
+      currentStage: 1,
+      startedAt: now,
+      completedAt: null,
+      outcome: null,
+      totalDuration: null,
+      createdAt: now,
+      updatedAt: now,
+    });
+
+    // Create stage documents
+    const batch = db.batch();
+    STAGES.forEach(s => {
+      const stageRef = bakeRef.collection('stages').doc(s.id);
+      const measurements = {};
+      s.measurements.forEach(m => { measurements[m.key] = m.default; });
+
+      batch.set(stageRef, {
+        id: s.id,
+        stageNumber: s.number,
+        name: s.name,
+        status: s.number === 1 ? 'active' : 'pending',
+        startedAt: s.number === 1 ? now : null,
+        completedAt: null,
+        duration: null,
+        measurements: { ...measurements, waterTemp: 'room' },
+        environment: { indoorTemp: null, outdoorTemp: null, humidity: null, pressure: null, location: null },
+        volume: { baselinePhotoId: null, checkPhotoId: null, estimatedRise: null, userAssessment: null },
+        timerEnabled: false,
+        timerEvents: [],
+        notes: '',
+        createdAt: now,
+        updatedAt: now,
+      });
+    });
+    await batch.commit();
+    return bakeId;
+  },
+
+  async updateStage(userId, bakeId, stageId, data) {
+    await db.collection('users').doc(userId).collection('bakes').doc(bakeId)
+      .collection('stages').doc(stageId)
+      .update({ ...data, updatedAt: firebase.firestore.FieldValue.serverTimestamp() });
+  },
+
+  async completeStage(userId, bakeId, stageId, stageNumber, stageState) {
+    const now = firebase.firestore.FieldValue.serverTimestamp();
+    const batch = db.batch();
+
+    // Update current stage
+    const stageRef = db.collection('users').doc(userId).collection('bakes').doc(bakeId).collection('stages').doc(stageId);
+    batch.update(stageRef, {
+      status: 'completed',
+      completedAt: now,
+      measurements: { ...stageState.measurements, waterTemp: stageState.waterTemp },
+      timerEnabled: stageState.timerOn,
+      notes: stageState.notes || '',
+      updatedAt: now,
+    });
+
+    // Update bake doc
+    const bakeRef = db.collection('users').doc(userId).collection('bakes').doc(bakeId);
+    if (stageNumber < 5) {
+      batch.update(bakeRef, { currentStage: stageNumber + 1, updatedAt: now });
+      // Activate next stage
+      const nextStageId = `stage${stageNumber + 1}`;
+      const nextStageRef = bakeRef.collection('stages').doc(nextStageId);
+      batch.update(nextStageRef, { status: 'active', startedAt: now, updatedAt: now });
+    } else {
+      batch.update(bakeRef, {
+        status: 'completed',
+        currentStage: 5,
+        completedAt: now,
+        outcome: stageState.outcome || null,
+        updatedAt: now,
+      });
+    }
+
+    await batch.commit();
+  },
+
+  async uploadPhoto(userId, bakeId, stageId, file, type = 'baseline') {
+    const photoId = `photo_${Date.now()}`;
+    const storagePath = `users/${userId}/bakes/${bakeId}/photos/${photoId}.jpg`;
+    const storageRef = storage.ref(storagePath);
+
+    // Upload file
+    const snapshot = await storageRef.put(file);
+    const downloadUrl = await snapshot.ref.getDownloadURL();
+
+    // Create photo document
+    await db.collection('users').doc(userId).collection('bakes').doc(bakeId)
+      .collection('photos').doc(photoId).set({
+        id: photoId,
+        stageId,
+        type,
+        storagePath,
+        downloadUrl,
+        metadata: { takenAt: null, latitude: null, longitude: null, deviceModel: null, originalFilename: file.name },
+        weather: null,
+        analysis: null,
+        uploadedAt: firebase.firestore.FieldValue.serverTimestamp(),
+        createdAt: firebase.firestore.FieldValue.serverTimestamp(),
+      });
+
+    return { photoId, downloadUrl };
+  },
+
+  async getBakeHistory(userId) {
+    const snap = await db.collection('users').doc(userId).collection('bakes')
+      .orderBy('createdAt', 'desc').limit(20).get();
+    return snap.docs.map(d => ({ id: d.id, ...d.data() }));
+  },
+};
+
+// ─── Instruction Renderer ───
+const InstructionLine = ({ parts }) => (
+  <div className="instruction-line">
+    {parts.map((p, i) => {
+      if (i % 2 === 0 && p) return <span key={i} className="action-word">{p}</span>;
+      if (typeof p === 'string' && /^\d|^~|^overnight/i.test(p.trim())) return <span key={i} className="time-ref">{p}</span>;
+      return <span key={i}>{p}</span>;
+    })}
+  </div>
+);
+
+// ─── Stage Card Component ───
+const StageCard = ({ stage, stageState, isExpanded, isCurrent, onToggle, onUpdateMeasurement, onSetWaterTemp, onToggleTimer, onUpdateNotes, onUpdateOutcome, onMarkComplete, onPhotoUpload, userId, bakeId }) => {
+  const fileInputRef = useRef(null);
+  const cameraInputRef = useRef(null);
+  const [saving, setSaving] = useState(false);
+  const [uploading, setUploading] = useState(false);
+
+  const handlePhotoSelect = async (e) => {
+    const file = e.target.files[0];
+    if (!file || !userId || !bakeId) return;
+    setUploading(true);
+    try {
+      const result = await firestoreOps.uploadPhoto(userId, bakeId, stage.id, file);
+      onPhotoUpload(stage.id, result);
+    } catch (err) {
+      console.error('Upload error:', err);
+      alert('Photo upload failed. Please try again.');
+    }
+    setUploading(false);
+  };
+
+  const handleComplete = async () => {
+    if (!userId || !bakeId) return;
+    setSaving(true);
+    try {
+      await firestoreOps.completeStage(userId, bakeId, stage.id, stage.number, stageState);
+      onMarkComplete(stage.id, stage.number);
+    } catch (err) {
+      console.error('Save error:', err);
+      alert('Failed to save. Please try again.');
+    }
+    setSaving(false);
+  };
+
+  return (
+    <div className={`stage-card ${isExpanded ? 'expanded' : ''}`}>
+      <div className="stage-card-header" onClick={onToggle}>
+        <div className="stage-name">
+          {stageState.completed && <span className="stage-check">✓</span>}
+          Stage {stage.number}: {stage.name}
+        </div>
+        <div className="stage-duration">{stage.duration}</div>
+      </div>
+
+      {isExpanded && (
+        <div className="card-body card-expanded-content">
+          {stage.intro && <div className="intro-text">{stage.intro}</div>}
+
+          {/* Measurements */}
+          {stage.measurements.map(m => (
+            <div key={m.key} className="measurement-row">
+              <div>
+                <span className="measurement-label">{m.label}</span>
+                {m.note && <span className="measurement-note"> ({m.note})</span>}
+              </div>
+              <div className="measurement-control">
+                <button className="adj-btn" onClick={() => onUpdateMeasurement(stage.id, m.key, Math.max(0, (stageState.measurements[m.key] || m.default) - m.step))}>−</button>
+                <input className="measurement-value" type="number" value={stageState.measurements[m.key] || m.default} onChange={e => onUpdateMeasurement(stage.id, m.key, parseInt(e.target.value) || 0)} />
+                <span className="measurement-unit">{m.unit}</span>
+                <button className="adj-btn" onClick={() => onUpdateMeasurement(stage.id, m.key, (stageState.measurements[m.key] || m.default) + m.step)}>+</button>
+              </div>
+            </div>
+          ))}
+
+          {/* Water temp */}
+          {stage.hasWaterTemp && (
+            <div className="water-temp">
+              <span className="water-temp-label">Water temp:</span>
+              <div className="temp-options">
+                <button className={`temp-btn ${stageState.waterTemp === 'room' ? 'active' : ''}`} onClick={() => onSetWaterTemp(stage.id, 'room')}>Room</button>
+                <button className={`temp-btn ${stageState.waterTemp === 'warmed' ? 'active' : ''}`} onClick={() => onSetWaterTemp(stage.id, 'warmed')}>Warmed</button>
+              </div>
+            </div>
+          )}
+
+          {/* Instructions */}
+          <div className="instructions">
+            {stage.instructions.map((inst, i) => <InstructionLine key={i} parts={inst.text} />)}
+          </div>
+
+          {/* Sub-steps (stretch & fold) */}
+          {stage.subSteps && (
+            <div className="substage">
+              <div className="substage-title">{stage.subSteps.title}</div>
+              {stage.subSteps.steps.map((s, i) => <InstructionLine key={i} parts={s.text} />)}
+            </div>
+          )}
+
+          {stage.bulkNote && (
+            <div className="substage">
+              <div className="substage-title">Bulk Fermentation</div>
+              <InstructionLine parts={stage.bulkNote.text} />
+            </div>
+          )}
+
+          {stage.shaping && (
+            <div className="substage">
+              <div className="substage-title">Shape</div>
+              {stage.shaping.map((s, i) => <InstructionLine key={i} parts={s.text} />)}
+            </div>
+          )}
+
+          {/* Sub-stages (bake) */}
+          {stage.subStages && stage.subStages.map((sub, i) => (
+            <div key={i} className="substage">
+              <div className="substage-title">{sub.title}</div>
+              {sub.instructions.map((inst, j) => <InstructionLine key={j} parts={inst.text} />)}
+              <div className="instruction-line"><span className="time-ref">{sub.time}</span></div>
+            </div>
+          ))}
+
+          {stage.target && <div className="target-box">Target: {stage.target}</div>}
+          {stage.notes && <div className="notes-text">{stage.notes}</div>}
+
+          {/* Photo upload */}
+          {stage.hasPhoto && (
+            <div className="photo-section">
+              <div className="photo-label">{stage.photoLabel}</div>
+              {stageState.photoUrl ? (
+                <div className="photo-preview">
+                  <img src={stageState.photoUrl} className="photo-thumb" alt="Stage photo" />
+                  <div className="photo-meta">Uploaded successfully</div>
+                </div>
+              ) : (
+                <>
+                  <div className="photo-buttons">
+                    <button className="photo-btn" onClick={() => fileInputRef.current?.click()} disabled={uploading}>
+                      <UploadSvg /> Upload
+                    </button>
+                    <button className="photo-btn" onClick={() => cameraInputRef.current?.click()} disabled={uploading}>
+                      <CameraSvg /> Camera
+                    </button>
+                  </div>
+                  <input ref={fileInputRef} className="hidden-input" type="file" accept="image/*" onChange={handlePhotoSelect} />
+                  <input ref={cameraInputRef} className="hidden-input" type="file" accept="image/*" capture="environment" onChange={handlePhotoSelect} />
+                </>
+              )}
+              {uploading && <div className="photo-uploading">Uploading photo...</div>}
+            </div>
+          )}
+
+          {/* Timer */}
+          {stage.hasTimer && (
+            <div className="timer-section">
+              <span className="timer-label">{stage.timerLabel}</span>
+              <div className={`toggle-track ${stageState.timerOn ? 'on' : ''}`} onClick={() => onToggleTimer(stage.id)}>
+                <div className="toggle-knob" />
+              </div>
+            </div>
+          )}
+
+          {/* Outcome (Stage 5) */}
+          {stage.hasOutcome && (
+            <div className="outcome-section">
+              <div className="outcome-title">Score Your Loaf</div>
+
+              <div className="outcome-group">
+                <div className="outcome-label">Oven Spring</div>
+                <div className="option-pills">
+                  {['poor', 'moderate', 'good', 'excellent'].map(opt => (
+                    <button key={opt} className={`pill ${stageState.outcome.ovenSpring === opt ? 'selected' : ''}`} onClick={() => onUpdateOutcome(stage.id, 'ovenSpring', opt)}>{opt}</button>
+                  ))}
+                </div>
+              </div>
+
+              <div className="outcome-group">
+                <div className="outcome-label">Crust Color</div>
+                <div className="option-pills">
+                  {['pale', 'golden', 'dark'].map(opt => (
+                    <button key={opt} className={`pill ${stageState.outcome.crustColor === opt ? 'selected' : ''}`} onClick={() => onUpdateOutcome(stage.id, 'crustColor', opt)}>{opt}</button>
+                  ))}
+                </div>
+              </div>
+
+              <div className="outcome-group">
+                <div className="outcome-label">Crumb Structure</div>
+                <div className="option-pills">
+                  {['tight', 'moderate', 'open'].map(opt => (
+                    <button key={opt} className={`pill ${stageState.outcome.crumbStructure === opt ? 'selected' : ''}`} onClick={() => onUpdateOutcome(stage.id, 'crumbStructure', opt)}>{opt}</button>
+                  ))}
+                </div>
+              </div>
+
+              <div className="outcome-group">
+                <div className="outcome-label">Overall Rating</div>
+                <div className="star-row">
+                  {[1, 2, 3, 4, 5].map(n => (
+                    <span key={n} className={`star ${stageState.outcome.rating >= n ? 'filled' : ''}`} onClick={() => onUpdateOutcome(stage.id, 'rating', n)}>★</span>
+                  ))}
+                </div>
+              </div>
+
+              <div className="outcome-group">
+                <div className="outcome-label">Flavor Notes</div>
+                <textarea className="flavor-input" placeholder="How does it taste?" value={stageState.outcome.flavorNotes || ''} onChange={e => onUpdateOutcome(stage.id, 'flavorNotes', e.target.value)} />
+              </div>
+            </div>
+          )}
+
+          {/* Notes */}
+          <div className="notes-section">
+            <textarea className="notes-input" placeholder="Add notes for this stage..." value={stageState.notes || ''} onChange={e => onUpdateNotes(stage.id, e.target.value)} />
+          </div>
+
+          {/* Complete button */}
+          {isCurrent && !stageState.completed && (
+            <div className="complete-section">
+              <button className={`complete-btn ${saving ? 'saving' : ''}`} onClick={handleComplete} disabled={saving}>
+                {saving ? 'Saving...' : stage.number === 5 ? 'FINISH BAKE' : 'MARK STAGE COMPLETE'} {!saving && <ArrowSvg />}
+              </button>
+            </div>
+          )}
+        </div>
+      )}
+    </div>
+  );
+};
+
+// ─── History View ───
+const HistoryView = ({ userId }) => {
+  const [bakes, setBakes] = useState([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    if (!userId) return;
+    firestoreOps.getBakeHistory(userId).then(b => {
+      setBakes(b);
+      setLoading(false);
+    });
+  }, [userId]);
+
+  const formatDate = (ts) => {
+    if (!ts) return '—';
+    const d = ts.toDate ? ts.toDate() : new Date(ts);
+    return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+  };
+
+  if (loading) return <div className="loading-state"><div className="spinner" /><div>Loading history...</div></div>;
+
+  if (bakes.length === 0) return (
+    <div className="empty-state">
+      <LogoIcon size={50} />
+      <div className="empty-text">No bakes recorded yet. Start your first bake to begin tracking!</div>
+    </div>
+  );
+
+  return (
+    <div>
+      {bakes.map(b => (
+        <div key={b.id} className="history-card">
+          <div className="history-date">
+            {formatDate(b.startedAt)}
+            <span className={`history-status ${b.status}`}>{b.status}</span>
+          </div>
+          <div className="history-meta">
+            {b.outcome && b.outcome.overallRating ? (
+              <span className="history-rating">{'★'.repeat(b.outcome.overallRating)}{'☆'.repeat(5 - b.outcome.overallRating)}</span>
+            ) : 'No rating'}
+            {b.outcome && b.outcome.ovenSpring ? ` · Spring: ${b.outcome.ovenSpring}` : ''}
+          </div>
+        </div>
+      ))}
+    </div>
+  );
+};
+
+// ─── Main App ───
+const App = () => {
+  const { user, loading: authLoading } = useAuth();
+  const [bakeStarted, setBakeStarted] = useState(false);
+  const [bakeId, setBakeId] = useState(null);
+  const [bakeStartTime, setBakeStartTime] = useState(null);
+  const [currentStage, setCurrentStage] = useState(1);
+  const [expandedStage, setExpandedStage] = useState(1);
+  const [elapsed, setElapsed] = useState('0h 0m');
+  const [bakeComplete, setBakeComplete] = useState(false);
+  const [view, setView] = useState('bake');
+  const [creating, setCreating] = useState(false);
+
+  const [stageStates, setStageStates] = useState(() => {
+    const states = {};
+    STAGES.forEach(s => {
+      const measurements = {};
+      s.measurements.forEach(m => { measurements[m.key] = m.default; });
+      states[s.id] = {
+        measurements,
+        waterTemp: 'room',
+        timerOn: false,
+        notes: '',
+        photoUrl: null,
+        photoId: null,
+        completed: false,
+        outcome: { ovenSpring: null, crustColor: null, crumbStructure: null, rating: 0, flavorNotes: '' },
+      };
+    });
+    return states;
+  });
+
+  // Check for active bake on load
+  useEffect(() => {
+    if (!user) return;
+    db.collection('users').doc(user.uid).collection('bakes')
+      .where('status', '==', 'active')
+      .orderBy('createdAt', 'desc')
+      .limit(1)
+      .get()
+      .then(snap => {
+        if (!snap.empty) {
+          const bake = snap.docs[0].data();
+          setBakeId(snap.docs[0].id);
+          setBakeStarted(true);
+          setBakeStartTime(bake.startedAt?.toDate?.()?.getTime() || Date.now());
+          setCurrentStage(bake.currentStage || 1);
+          setExpandedStage(bake.currentStage || 1);
+
+          // Load stage data
+          snap.docs[0].ref.collection('stages').get().then(stageSnap => {
+            const newStates = { ...stageStates };
+            stageSnap.docs.forEach(doc => {
+              const data = doc.data();
+              const sid = doc.id;
+              if (newStates[sid]) {
+                newStates[sid] = {
+                  ...newStates[sid],
+                  measurements: data.measurements || newStates[sid].measurements,
+                  waterTemp: data.measurements?.waterTemp || 'room',
+                  timerOn: data.timerEnabled || false,
+                  notes: data.notes || '',
+                  completed: data.status === 'completed',
+                };
+              }
+            });
+            setStageStates(newStates);
+          });
+
+          // Load photos
+          snap.docs[0].ref.collection('photos').get().then(photoSnap => {
+            const newStates = { ...stageStates };
+            photoSnap.docs.forEach(doc => {
+              const photo = doc.data();
+              if (newStates[photo.stageId]) {
+                newStates[photo.stageId] = {
+                  ...newStates[photo.stageId],
+                  photoUrl: photo.downloadUrl,
+                  photoId: photo.id,
+                };
+              }
+            });
+            setStageStates(prev => {
+              const merged = { ...prev };
+              photoSnap.docs.forEach(doc => {
+                const photo = doc.data();
+                if (merged[photo.stageId]) {
+                  merged[photo.stageId].photoUrl = photo.downloadUrl;
+                  merged[photo.stageId].photoId = photo.id;
+                }
+              });
+              return merged;
+            });
+          });
+        }
+      })
+      .catch(err => console.log('Active bake check:', err));
+  }, [user]);
+
+  // Elapsed timer
+  useEffect(() => {
+    if (!bakeStarted || !bakeStartTime) return;
+    const update = () => {
+      const diff = Date.now() - bakeStartTime;
+      const h = Math.floor(diff / 3600000);
+      const m = Math.floor((diff % 3600000) / 60000);
+      setElapsed(`${h}h ${m}m`);
+    };
+    update();
+    const interval = setInterval(update, 10000);
+    return () => clearInterval(interval);
+  }, [bakeStarted, bakeStartTime]);
+
+  const startBake = async () => {
+    if (!user || creating) return;
+    setCreating(true);
+    try {
+      const newBakeId = await firestoreOps.createBake(user.uid);
+      setBakeId(newBakeId);
+      setBakeStarted(true);
+      setBakeStartTime(Date.now());
+      setCurrentStage(1);
+      setExpandedStage(1);
+      setBakeComplete(false);
+      // Reset stage states
+      const states = {};
+      STAGES.forEach(s => {
+        const measurements = {};
+        s.measurements.forEach(m => { measurements[m.key] = m.default; });
+        states[s.id] = { measurements, waterTemp: 'room', timerOn: false, notes: '', photoUrl: null, photoId: null, completed: false, outcome: { ovenSpring: null, crustColor: null, crumbStructure: null, rating: 0, flavorNotes: '' } };
+      });
+      setStageStates(states);
+    } catch (err) {
+      console.error('Failed to create bake:', err);
+      alert('Failed to start bake. Check your connection.');
+    }
+    setCreating(false);
+  };
+
+  const updateMeasurement = (stageId, key, value) => {
+    setStageStates(prev => ({
+      ...prev,
+      [stageId]: { ...prev[stageId], measurements: { ...prev[stageId].measurements, [key]: value } }
+    }));
+  };
+
+  const setWaterTemp = (stageId, temp) => {
+    setStageStates(prev => ({ ...prev, [stageId]: { ...prev[stageId], waterTemp: temp } }));
+  };
+
+  const toggleTimer = (stageId) => {
+    setStageStates(prev => ({ ...prev, [stageId]: { ...prev[stageId], timerOn: !prev[stageId].timerOn } }));
+  };
+
+  const updateNotes = (stageId, notes) => {
+    setStageStates(prev => ({ ...prev, [stageId]: { ...prev[stageId], notes } }));
+  };
+
+  const updateOutcome = (stageId, field, value) => {
+    setStageStates(prev => ({
+      ...prev,
+      [stageId]: { ...prev[stageId], outcome: { ...prev[stageId].outcome, [field]: value } }
+    }));
+  };
+
+  const handlePhotoUpload = (stageId, result) => {
+    setStageStates(prev => ({
+      ...prev,
+      [stageId]: { ...prev[stageId], photoUrl: result.downloadUrl, photoId: result.photoId }
+    }));
+  };
+
+  const markComplete = (stageId, stageNumber) => {
+    setStageStates(prev => ({ ...prev, [stageId]: { ...prev[stageId], completed: true } }));
+    if (stageNumber < 5) {
+      setCurrentStage(stageNumber + 1);
+      setExpandedStage(stageNumber + 1);
+    } else {
+      setBakeComplete(true);
+      setExpandedStage(null);
+    }
+  };
+
+  const toggleExpand = (stageNumber) => {
+    setExpandedStage(prev => prev === stageNumber ? null : stageNumber);
+  };
+
+  const formatStartTime = () => {
+    if (!bakeStartTime) return '';
+    const d = new Date(bakeStartTime);
+    return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' }) + ', ' +
+           d.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' });
+  };
+
+  // Loading state
+  if (authLoading) {
+    return (
+      <div className="app">
+        <div className="loading-state">
+          <LogoIcon size={50} />
+          <div style={{ marginTop: 16 }}><div className="spinner" /></div>
+          <div style={{ marginTop: 8 }}>Loading Score...</div>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="app">
+      {/* Header */}
+      <div className="header">
+        <div className="header-top">
+          <div className="logo-group">
+            <LogoIcon size={30} />
+            <span className="logo-text">SCORE</span>
+          </div>
+          <button className="settings-btn" aria-label="Settings"><SettingsSvg /></button>
+        </div>
+        {bakeStarted && !bakeComplete && (
+          <div className="header-meta">
+            Started: {formatStartTime()} · Elapsed: <span className="time-val">{elapsed}</span>
+          </div>
+        )}
+        {bakeStarted && (
+          <div className="progress-bar" style={{ marginTop: 10 }}>
+            {STAGES.map(s => (
+              <div key={s.id} className={`progress-step ${stageStates[s.id].completed ? 'complete' : s.number === currentStage && !bakeComplete ? 'current' : ''}`} />
+            ))}
+          </div>
+        )}
+      </div>
+
+      {/* Main content */}
+      {view === 'bake' && (
+        <>
+          {!bakeStarted ? (
+            <div className="empty-state">
+              <LogoIcon size={60} />
+              <div className="empty-text">No active bake session</div>
+              <button className="start-btn" onClick={startBake} disabled={creating}>
+                {creating ? 'Creating...' : 'START NEW BAKE'} {!creating && <ArrowSvg />}
+              </button>
+            </div>
+          ) : bakeComplete ? (
+            <div className="bake-complete">
+              <h2>Bake Complete!</h2>
+              <p>Your bake has been saved to history.</p>
+              <button className="new-bake-btn" onClick={() => { setBakeStarted(false); setBakeComplete(false); setBakeId(null); }}>
+                START ANOTHER <ArrowSvg />
+              </button>
+            </div>
+          ) : (
+            STAGES.map(s => (
+              <StageCard
+                key={s.id}
+                stage={s}
+                stageState={stageStates[s.id]}
+                isExpanded={expandedStage === s.number}
+                isCurrent={s.number === currentStage}
+                onToggle={() => toggleExpand(s.number)}
+                onUpdateMeasurement={updateMeasurement}
+                onSetWaterTemp={setWaterTemp}
+                onToggleTimer={toggleTimer}
+                onUpdateNotes={updateNotes}
+                onUpdateOutcome={updateOutcome}
+                onMarkComplete={markComplete}
+                onPhotoUpload={handlePhotoUpload}
+                userId={user?.uid}
+                bakeId={bakeId}
+              />
+            ))
+          )}
+        </>
+      )}
+
+      {view === 'history' && <HistoryView userId={user?.uid} />}
+
+      {view === 'settings' && (
+        <div className="empty-state">
+          <div className="empty-text">Settings coming in a future update.</div>
+          {user && (
+            <div style={{ fontSize: 12, color: '#8b7355', marginTop: 10 }}>
+              User ID: {user.uid}<br/>
+              Auth: Anonymous
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* Bottom nav */}
+      <div className="bottom-nav">
+        <button className={`nav-item ${view === 'bake' ? 'active' : ''}`} onClick={() => setView('bake')}>
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/></svg>
+          Bake
+        </button>
+        <button className={`nav-item ${view === 'history' ? 'active' : ''}`} onClick={() => setView('history')}>
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+          History
+        </button>
+        <button className={`nav-item ${view === 'settings' ? 'active' : ''}`} onClick={() => setView('settings')}>
+          <SettingsSvg />
+          Settings
+        </button>
+      </div>
+    </div>
+  );
+};
+
+ReactDOM.createRoot(document.getElementById('root')).render(<App />);
+</script>
+</body>
+</html>
