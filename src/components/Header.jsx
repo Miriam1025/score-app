@@ -36,7 +36,7 @@ export default function Header({ bake }) {
             <h1 className="font-bold text-lg">Sourdough Tracker</h1>
           </div>
           <a
-            href="https://forms.gle/YOUR_FORM_ID"
+            href="mailto:miriamlpappas@gmail.com?subject=Score App Feedback"
             target="_blank"
             rel="noopener noreferrer"
             className="text-text-secondary hover:text-text-primary p-2 text-sm"
